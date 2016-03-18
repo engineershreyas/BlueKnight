@@ -11,7 +11,7 @@ BlueKnight is a robust,quick, and secure mechanism for communicating via Bluetoo
  
 ###### Inspiration
 
-This project was inspired on improving upon and simplifying the code provided by the Bluetooth SIG [application accelerator(https://www.bluetooth.com/develop-with-bluetooth/developer-resources-tools/application-accelerator)
+This project was inspired on improving upon and simplifying the code provided by the Bluetooth SIG [application accelerator (https://www.bluetooth.com/develop-with-bluetooth/developer-resources-tools/application-accelerator)
 
 ###### Status
 
@@ -19,4 +19,4 @@ IN PROGRESS
 
 ###### License
 
-MIT
+The MIT License (MIT)
