@@ -242,12 +242,20 @@ public class BlueKnight {
         if(mBluetoothGattServices != null && mBluetoothGattServices.size() > 0) mBluetoothGattServices.clear();
         // keep reference to all services in local array:
         if(mBluetoothGatt != null) mBluetoothGattServices = mBluetoothGatt.getServices();
+
+        mBlueKnightInterface.servicesForDevice(mBluetoothDevice,mBluetoothGattServices);
+
     }
 
     public void getCharacteristicsForService(final BluetoothGattService service){
-        if(mBluetoothGattServices != null && mBluetoothGattServices.size() > 0) mBluetoothGattServices.clear();
-        // keep reference to all services in local array:
-        if(mBluetoothGatt != null) mBluetoothGattServices = mBluetoothGatt.getServices();
+
+        if(service == null) return;
+
+        List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+
+        mBlueKnightInterface.characteristicsForService(mBluetoothDevice,characteristics,service);
+
+        mBluetoothSelectedService = service;
 
     }
 
@@ -259,8 +267,18 @@ public class BlueKnight {
 
     public void getCharacteristicValue(BluetoothGattCharacteristic ch){
 
+        byte[] rawValue = ch.getValue();
+        String strValue = null;
+        int intValue = 0;
+        String timestamp = null;
+
 
         //do decoding here
+
+
+
+        //ui callback
+        mBlueKnightInterface.notificationValue(rawValue,intValue,strValue,ch,mBluetoothDevice,timestamp);
 
     }
 
@@ -305,6 +323,9 @@ public class BlueKnight {
             descriptor.setValue(val);
             mBluetoothGatt.writeDescriptor(descriptor);
         }
+
+        mBlueKnightInterface.notificationSet(characteristic,success,descriptor != null);
+
     }
 
 
@@ -357,25 +378,30 @@ public class BlueKnight {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 mConnected = true;
 
-                // now we can start talking with the device, e.g.
+                
                 mBluetoothGatt.readRemoteRssi();
-                // response will be delivered to callback object!
 
-                // in our case we would also like automatically to call for services discovery
+
+
                 startServiceDiscovery();
 
-                // and we also want to get RSSI value to be updated periodically
+
                 startReadingRssi();
+
+                mBlueKnightInterface.connectionStatus(gatt.getDevice(),true);
+
+
             }
             else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 mConnected = false;
+                mBlueKnightInterface.connectionStatus(gatt.getDevice(),true);
             }
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // now, when services discovery is finished, we can call getServices() for Gatt
+
                 getSupportedServices();
             }
         }
@@ -385,9 +411,9 @@ public class BlueKnight {
                                          BluetoothGattCharacteristic characteristic,
                                          int status)
         {
-            // we got response regarding our request to fetch characteristic value
+
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // and it success, so we can get the value
+
                 getCharacteristicValue(characteristic);
             }
         }
@@ -396,20 +422,19 @@ public class BlueKnight {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic)
         {
-            // characteristic's value was updated due to enabled notification, lets get this value
-            // the value itself will be reported to the UI inside getCharacteristicValue
+
             getCharacteristicValue(characteristic);
 
 
-            //notification callback here
+
+            mBlueKnightInterface.notificationReceived(characteristic);
         }
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             String deviceName = gatt.getDevice().getName();
 
-            // we got response regarding our request to write new value to the characteristic
-            // let see if it failed or not
+
             if(status == BluetoothGatt.GATT_SUCCESS) {
 
                 mBlueKnightInterface.writeStatus(deviceName,status,characteristic,true);
@@ -425,7 +450,8 @@ public class BlueKnight {
         @Override
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
             if(status == BluetoothGatt.GATT_SUCCESS) {
-                // we got new value of RSSI of the connection, pass it to the UI
+
+                mBlueKnightInterface.newRssiValueReceived(gatt.getDevice(),rssi);
             }
         };
     };
