@@ -40,13 +40,15 @@ public class BlueKnight {
     private BluetoothGatt mBluetoothGatt = null;
     private BluetoothGattService mBluetoothSelectedService = null;
     private List<BluetoothGattService> mBluetoothGattServices = null;
+    public  BlueKnightInterface mBlueKnightInterface = null;
 
     private Handler mTimerHandler = new Handler();
     private boolean mTimerEnabled = false;
 
 
-    public BlueKnight(Activity parent){
+    public BlueKnight(Activity parent, BlueKnightInterface blueKnightInterface){
         this.mParent = parent;
+        this.mBlueKnightInterface = blueKnightInterface;
     }
 
     public BluetoothManager getManager(){
@@ -72,6 +74,8 @@ public class BlueKnight {
     public List<BluetoothGattService> getBluetoothGattServices(){
         return mBluetoothGattServices;
     }
+
+
 
     public boolean checkBleAvailable(){
 
@@ -255,6 +259,9 @@ public class BlueKnight {
 
     public void getCharacteristicValue(BluetoothGattCharacteristic ch){
 
+
+        //do decoding here
+
     }
 
     public int getValueFormat(BluetoothGattCharacteristic ch){
@@ -306,6 +313,7 @@ public class BlueKnight {
         public void onLeScan(final BluetoothDevice device, final int rssi, final byte[] scanRecord) {
 
 
+            mBlueKnightInterface.deviceFound(device,rssi,scanRecord);
 
         }
     };
@@ -322,6 +330,9 @@ public class BlueKnight {
                 @Override
                 public void onScanResult(int callbackType, ScanResult result) {
                     super.onScanResult(callbackType, result);
+
+                    mBlueKnightInterface.deviceFound(result.getDevice(),result.getRssi(),result.getScanRecord().getBytes());
+
 
 
                 }
@@ -388,7 +399,9 @@ public class BlueKnight {
             // characteristic's value was updated due to enabled notification, lets get this value
             // the value itself will be reported to the UI inside getCharacteristicValue
             getCharacteristicValue(characteristic);
-            // also, notify UI that notification are enabled for particular characteristic
+
+
+            //notification callback here
         }
 
         @Override
@@ -398,8 +411,14 @@ public class BlueKnight {
             // we got response regarding our request to write new value to the characteristic
             // let see if it failed or not
             if(status == BluetoothGatt.GATT_SUCCESS) {
+
+                mBlueKnightInterface.writeStatus(deviceName,status,characteristic,true);
+
             }
             else {
+
+                mBlueKnightInterface.writeStatus(deviceName,status,characteristic,false);
+
             }
         };
 
