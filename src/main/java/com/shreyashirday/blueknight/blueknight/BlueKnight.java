@@ -20,8 +20,12 @@ import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
 
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Created by shreyashirday on 3/17/16.
@@ -29,6 +33,8 @@ import java.util.UUID;
 public class BlueKnight {
 
     private int rssiUpdateInterval = 1500;
+    private int payloadSize = 121;
+    private String magic = null;
 
     private Activity mParent = null;
     private boolean mConnected = false;
@@ -49,7 +55,184 @@ public class BlueKnight {
     public BlueKnight(Activity parent, BlueKnightInterface blueKnightInterface){
         this.mParent = parent;
         this.mBlueKnightInterface = blueKnightInterface;
+        initializeSequenceByteMap();
     }
+
+    //BlueKnight specific methods and stuff
+
+    private enum Sequences {
+        FIRST_ONLY, FIRST_MORE, IN_BETWEEN, LAST
+    }
+
+    private class Result {
+        byte[] payload = null;
+        boolean complete = false;
+        int offset = 0;
+    }
+
+    private Map<Sequences,Byte> sequencesByteMap = new EnumMap<Sequences, Byte>(Sequences.class);
+
+    public void initializeSequenceByteMap(){
+
+        sequencesByteMap.put(Sequences.FIRST_ONLY,(byte)1);
+        sequencesByteMap.put(Sequences.FIRST_MORE,(byte)2);
+        sequencesByteMap.put((Sequences.IN_BETWEEN),(byte)3);
+        sequencesByteMap.put(Sequences.LAST,(byte)4);
+
+
+    }
+
+    private Result payloadPacker(byte[] data, Sequences s,int offset){
+
+        Result result = new Result();
+
+        int trueLength = data.length - offset;
+        int arraySize;
+
+
+        if(trueLength > payloadSize){
+
+            arraySize = payloadSize;
+
+
+        }
+        else{
+
+            arraySize = trueLength;
+
+        }
+
+        byte[] payload = new byte[arraySize + 5];
+        byte[] magicBytes = magicToHex();
+
+        for(int i = 0; i < 2; i++){
+
+            payload[i] = magicBytes[i];
+
+        }
+
+        payload[2] = (byte)arraySize;
+
+        payload[3] = sequencesByteMap.get(s);
+
+        for(int i = 4; i < arraySize + 4; i++){
+            payload[i] = data[offset];
+            offset++;
+        }
+
+        //TODO: change the value
+        payload[arraySize + 4] =(byte)'A';
+
+        result.payload = payload;
+        result.offset = offset;
+        result.complete = offset >= data.length;
+
+        return result;
+
+    }
+
+    public boolean setMagic(String magic){
+
+        //Only four hexadecimal characters!
+        if(magic.length() != 4) return false;
+
+        String patternString = "^[0-9a-fA-F]+$";
+
+        Pattern pattern = Pattern.compile(patternString);
+
+        //only hexadecimal characters allowed!
+        if(!pattern.matcher(magic).matches()) return false;
+
+        this.magic = magic.toUpperCase();
+
+        return true;
+
+    }
+
+    public void setPayloadSize(int pSize){
+
+        this.payloadSize = pSize;
+
+    }
+
+    private byte[] magicToHex(){
+
+        if(this.magic == null) return null;
+
+
+        char[] chars = this.magic.toCharArray();
+
+        int index = 0;
+        int sum = 0;
+        int sumTwo = 0;
+
+        for(char c : chars){
+
+            String charString = Character.toString(c);
+
+            try {
+
+                int intValue = Integer.parseInt(charString);
+
+                int valToAdd = (int)(intValue * Math.pow(16,index));
+
+                if(index < 2){
+                    sum += valToAdd;
+                }
+                else{
+                    sumTwo += valToAdd;
+                }
+
+
+            }catch (NumberFormatException e){
+
+
+
+
+                int valToAdd = charToHex(c,index);
+
+                if(index < 2){
+                    sum += valToAdd;
+                }
+                else{
+                    sumTwo += valToAdd;
+                }
+
+
+
+            }
+
+            index++;
+
+        }
+
+        byte[] returnBytes = new byte[2];
+
+        returnBytes[0] = (byte)sum;
+        returnBytes[1] = (byte)sumTwo;
+
+        return returnBytes;
+
+    }
+
+    private int charToHex(char c, int index){
+
+        char a = 'A';
+        int aVal = (int)a;
+
+        int diff = (int)c - aVal;
+
+        int trueVal = 10 + diff;
+
+        int valToAdd = (int)(trueVal * Math.pow(16,index));
+
+
+        return valToAdd;
+
+    }
+
+    //End BlueKnight specific methods
+
 
     public BluetoothManager getManager(){
         return mBluetoothManager;
@@ -209,10 +392,9 @@ public class BlueKnight {
         mTimerHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if(mBluetoothGatt == null ||
+                if (mBluetoothGatt == null ||
                         mBluetoothAdapter == null ||
-                        mConnected == false)
-                {
+                        mConnected == false) {
                     mTimerEnabled = false;
                     return;
                 }
@@ -265,6 +447,17 @@ public class BlueKnight {
         mBluetoothGatt.readCharacteristic(characteristic);
     }
 
+    /*
+
+             first four bytes are header
+             next X bytes are payload
+             last two bytes are footer
+
+             REMINDER: EACH CHUNK IS 20 BYTES
+             TOTAL NUMBER OF CHUNKS IS (PAYLOAD_SIZE + 6)/20
+
+
+     */
     public void getCharacteristicValue(BluetoothGattCharacteristic ch){
 
         byte[] rawValue = ch.getValue();
@@ -274,6 +467,7 @@ public class BlueKnight {
 
 
         //do decoding here
+
 
 
 
@@ -301,10 +495,32 @@ public class BlueKnight {
 
         if (mBluetoothAdapter == null || mBluetoothGatt == null || characteristic == null) return;
 
+        Sequences s = data.length > payloadSize ? Sequences.FIRST_MORE : Sequences.FIRST_ONLY;
 
-        characteristic.setValue(data);
+        Result result = payloadPacker(data,s,0);
 
-        mBluetoothGatt.writeCharacteristic(characteristic);
+        byte[] payload = null;
+
+        while(!result.complete){
+
+            payload = result.payload;
+
+            characteristic.setValue(payload);
+
+            mBluetoothGatt.writeCharacteristic(characteristic);
+
+            s = data.length - result.offset < payloadSize ? Sequences.LAST : Sequences.IN_BETWEEN;
+
+            result = payloadPacker(data,s,result.offset);
+
+        }
+
+
+
+
+
+
+
 
     }
 
