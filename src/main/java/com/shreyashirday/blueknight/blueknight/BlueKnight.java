@@ -120,8 +120,8 @@ public class BlueKnight {
             offset++;
         }
 
-        //TODO: change the value
-        payload[arraySize + 4] =(byte)'A';
+
+        payload[arraySize + 4] = (byte)(charToHex('A',0) + charToHex('A',1));
 
         result.payload = payload;
         result.offset = offset;
@@ -499,7 +499,7 @@ public class BlueKnight {
 
         Result result = payloadPacker(data,s,0);
 
-        byte[] payload = null;
+        byte[] payload;
 
         while(!result.complete){
 
@@ -514,12 +514,6 @@ public class BlueKnight {
             result = payloadPacker(data,s,result.offset);
 
         }
-
-
-
-
-
-
 
 
     }
