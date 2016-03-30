@@ -15,7 +15,7 @@ This project was inspired on improving upon and simplifying the code provided by
 
 ###### Status
 
-IN PROGRESS
+ALMOST DONE
 
 ###### License
 
