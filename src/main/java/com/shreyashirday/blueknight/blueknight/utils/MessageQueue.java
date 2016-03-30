@@ -31,6 +31,8 @@ public class MessageQueue {
             queue.poll();
         }
 
+        messageLength = 0;
+
     }
 
     public String assembleMessage(){
