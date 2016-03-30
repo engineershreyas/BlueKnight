@@ -21,7 +21,7 @@ public interface BlueKnightInterface {
     void notificationReceived(BluetoothGattCharacteristic characteristic);
 
     //called when value is fetched after a notification and it contains data in different forms
-    void notificationValue(byte[] rawValue, int intValue, String strValue, BluetoothGattCharacteristic characteristic, BluetoothDevice device, String timeStampe);
+    void notificationValue(byte[] rawValue, String strValue, BluetoothGattCharacteristic characteristic, BluetoothDevice device, String timeStampe);
 
     //list of all characteristics belonging to a service
     void characteristicsForService(BluetoothDevice bluetoothDevice,List<BluetoothGattCharacteristic> characteristicList, BluetoothGattService service);

@@ -17,10 +17,19 @@ public class MessageQueue {
         queue = new LinkedList<>();
     }
 
-    public void addMessage(Byte[] data, int length){
+    public boolean addMessage(Byte[] data, int length){
+
+        String s = assembleChunk(data);
+
+        if(s.length() != length){
+            flush();
+            return false;
+        }
 
         messageLength += length;
         queue.add(data);
+
+        return true;
 
     }
 
@@ -35,6 +44,23 @@ public class MessageQueue {
 
     }
 
+    private String assembleChunk(Byte[] data){
+
+        byte[] b = new byte[data.length];
+
+
+        int i = 0;
+        for(Byte bte : data){
+            b[i] = bte;
+            i++;
+        }
+
+        String s = new String(b);
+
+        return s;
+
+    }
+
     public String assembleMessage(){
 
         StringBuilder sb = new StringBuilder();
@@ -44,16 +70,8 @@ public class MessageQueue {
             Byte[] bytes = queue.poll();
 
 
-            byte[] b = new byte[bytes.length];
+            String s = assembleChunk(bytes);
 
-
-            int i = 0;
-            for(Byte bte : bytes){
-                b[i] = bte;
-                i++;
-            }
-
-            String s = new String(b);
             sb.append(s);
 
 

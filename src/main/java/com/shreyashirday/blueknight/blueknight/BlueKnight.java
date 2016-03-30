@@ -20,6 +20,9 @@ import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
 
+import com.shreyashirday.blueknight.blueknight.utils.MessageQueue;
+
+import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -51,10 +54,13 @@ public class BlueKnight {
     private Handler mTimerHandler = new Handler();
     private boolean mTimerEnabled = false;
 
+    private MessageQueue messageQueue;
+
 
     public BlueKnight(Activity parent, BlueKnightInterface blueKnightInterface){
         this.mParent = parent;
         this.mBlueKnightInterface = blueKnightInterface;
+        messageQueue = new MessageQueue();
         initializeSequenceByteMap();
     }
 
@@ -461,18 +467,48 @@ public class BlueKnight {
     public void getCharacteristicValue(BluetoothGattCharacteristic ch){
 
         byte[] rawValue = ch.getValue();
-        String strValue = null;
-        int intValue = 0;
-        String timestamp = null;
+        String strValue;
 
+        Date date = new Date();
+        String timestamp = date.toString();
 
         //do decoding here
 
+        byte[] magicBytes = magicToHex();
+        if(rawValue[0] == magicBytes[0] && rawValue[1] == magicBytes[1]){
+
+            byte sequenceByte = rawValue[2];
+            byte length = rawValue[3];
+
+            Byte[] payload = new Byte[payloadSize];
+
+            for(int i = 4; i < payloadSize + 4; i++){
+
+                payload[i - 4] = rawValue[i];
+
+            }
+
+            messageQueue.addMessage(payload, length);
+
+
+            if(sequenceByte == sequencesByteMap.get(Sequences.LAST) || sequenceByte == sequencesByteMap.get(Sequences.FIRST_ONLY)){
+
+                    strValue = messageQueue.assembleMessage();
+                    if(messageQueue.validateMessage()){
+
+                        messageQueue.flush();
+
+                        //ui callback
+                        mBlueKnightInterface.notificationValue(rawValue,strValue,ch,mBluetoothDevice,timestamp);
+
+                    }
+
+            }
+
+        }
 
 
 
-        //ui callback
-        mBlueKnightInterface.notificationValue(rawValue,intValue,strValue,ch,mBluetoothDevice,timestamp);
 
     }
 
