@@ -488,21 +488,22 @@ public class BlueKnight {
 
             }
 
-            messageQueue.addMessage(payload, length);
+            if(messageQueue.addMessage(payload, length)) {
 
 
-            if(sequenceByte == sequencesByteMap.get(Sequences.LAST) || sequenceByte == sequencesByteMap.get(Sequences.FIRST_ONLY)){
+                if (sequenceByte == sequencesByteMap.get(Sequences.LAST) || sequenceByte == sequencesByteMap.get(Sequences.FIRST_ONLY)) {
 
                     strValue = messageQueue.assembleMessage();
-                    if(messageQueue.validateMessage()){
+                    if (messageQueue.validateMessage()) {
 
                         messageQueue.flush();
 
                         //ui callback
-                        mBlueKnightInterface.notificationValue(rawValue,strValue,ch,mBluetoothDevice,timestamp);
+                        mBlueKnightInterface.notificationValue(rawValue, strValue, ch, mBluetoothDevice, timestamp);
 
                     }
 
+                }
             }
 
         }
