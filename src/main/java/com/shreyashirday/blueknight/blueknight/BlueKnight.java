@@ -38,6 +38,7 @@ public class BlueKnight {
     private int rssiUpdateInterval = 1500;
     private int payloadSize = 121;
     private String magic = null;
+    private byte[] lastDataSent = null;
 
     private Activity mParent = null;
     private boolean mConnected = false;
@@ -78,7 +79,7 @@ public class BlueKnight {
 
     private Map<Sequences,Byte> sequencesByteMap = new EnumMap<Sequences, Byte>(Sequences.class);
 
-    public void initializeSequenceByteMap(){
+    private void initializeSequenceByteMap(){
 
         sequencesByteMap.put(Sequences.FIRST_ONLY,(byte)1);
         sequencesByteMap.put(Sequences.FIRST_MORE,(byte)2);
@@ -466,6 +467,7 @@ public class BlueKnight {
      */
     public void getCharacteristicValue(BluetoothGattCharacteristic ch){
 
+
         byte[] rawValue = ch.getValue();
         String strValue;
 
@@ -531,6 +533,8 @@ public class BlueKnight {
     public void writeDataToCharacteristic(final BluetoothGattCharacteristic characteristic, final byte[] data){
 
         if (mBluetoothAdapter == null || mBluetoothGatt == null || characteristic == null) return;
+
+        lastDataSent = data;
 
         Sequences s = data.length > payloadSize ? Sequences.FIRST_MORE : Sequences.FIRST_ONLY;
 
@@ -684,12 +688,12 @@ public class BlueKnight {
 
             if(status == BluetoothGatt.GATT_SUCCESS) {
 
-                mBlueKnightInterface.writeStatus(deviceName,status,characteristic,true);
+                mBlueKnightInterface.writeStatus(deviceName,status,characteristic,true,lastDataSent);
 
             }
             else {
 
-                mBlueKnightInterface.writeStatus(deviceName,status,characteristic,false);
+                mBlueKnightInterface.writeStatus(deviceName,status,characteristic,false,lastDataSent);
 
             }
         };

@@ -15,7 +15,7 @@ public interface BlueKnightInterface {
     void deviceFound(BluetoothDevice device, int rssi, byte[] data);
 
     //called when a write is complete, "success" indicates if the write succeeded or not
-    void writeStatus(String deviceName,int status, BluetoothGattCharacteristic characteristic, boolean success);
+    void writeStatus(String deviceName,int status, BluetoothGattCharacteristic characteristic, boolean success, byte[] lastDataSent);
 
     //called when a characteristic on the peripheral devices gatt sends a notification
     void notificationReceived(BluetoothGattCharacteristic characteristic);
