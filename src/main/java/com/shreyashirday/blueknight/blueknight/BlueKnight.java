@@ -156,10 +156,14 @@ public class BlueKnight {
 
     }
 
-    public void setPayloadSize(int pSize){
+    public boolean setPayloadSize(int pSize){
+
+        //too big
+        if(pSize > 255) return false;
 
         this.payloadSize = pSize;
 
+        return true;
     }
 
     private byte[] magicToHex(){
