@@ -536,7 +536,15 @@ public class BlueKnight {
 
     public void writeDataToCharacteristic(final BluetoothGattCharacteristic characteristic, final byte[] data){
 
-        if (mBluetoothAdapter == null || mBluetoothGatt == null || characteristic == null) return;
+        if (mBluetoothAdapter == null || mBluetoothGatt == null || characteristic == null) {
+
+            Log.d("BlueKnight","One of these is null");
+
+            return;
+
+        }
+
+        Log.d("BlueKnight","passed first check");
 
         lastDataSent = data;
 
@@ -546,7 +554,11 @@ public class BlueKnight {
 
         byte[] payload;
 
-        while(!result.complete){
+        boolean first = true;
+
+        while(!result.complete || first){
+
+            Log.d("BlueKnight","Result not complete");
 
             payload = result.payload;
 
@@ -557,8 +569,11 @@ public class BlueKnight {
             s = data.length - result.offset < payloadSize ? Sequences.LAST : Sequences.IN_BETWEEN;
 
             result = payloadPacker(data,s,result.offset);
+            first = false;
 
         }
+
+        Log.d("BlueKnight","Result is complete");
 
 
     }
@@ -692,10 +707,14 @@ public class BlueKnight {
 
             if(status == BluetoothGatt.GATT_SUCCESS) {
 
+                Log.d("BlueKnight","WRITE SUCCESS");
+
                 mBlueKnightInterface.writeStatus(deviceName,status,characteristic,true,lastDataSent);
 
             }
             else {
+
+                Log.d("BlueKnight","WRITE FAIL");
 
                 mBlueKnightInterface.writeStatus(deviceName,status,characteristic,false,lastDataSent);
 
